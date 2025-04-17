@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buscador de Productos</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    .input-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    .clear-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-weight: bold;
+      color: red;
+    }
+    input {
+      margin: 5px;
+      padding: 10px;
+      width: 300px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    #reader {
+      width: 240px;
+      height: 180px;
+      margin: 10px 0;
+      border: 1px solid #aaa;
+      display: none;
+    }
+    #producto-destacado {
+      margin-top: 20px;
+      padding: 15px;
+      border: 2px solid #4CAF50;
+      border-radius: 10px;
+      background-color: #eaffea;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      display: none;
+    }
+    table {
+      margin-top: 30px;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <h1>📦 Buscador de Productos</h1>
+
+  <div class="input-wrapper">
+    <input type="text" id="codigo" placeholder="Código de barras" onfocus="iniciarScanner()" onblur="detenerScanner()">
+    <span class="clear-btn" onclick="limpiarCampo('codigo')">×</span>
+  </div>
+
+  <div class="input-wrapper">
+    <input type="text" id="nombre" placeholder="Buscar por nombre" oninput="debouncedBuscar()">
+    <span class="clear-btn" onclick="limpiarCampo('nombre')">×</span>
+  </div>
+
+  <div id="reader"></div>
+
+  <div id="producto-destacado"></div>
+
+  <table id="resultados">
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Nombre</th>
+        <th>Precio</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    let debounceTimer;
+    let controller = null;
+    const cache = new Map();
+    let ultimaLectura = 0;
+    let scannerActivo = false;
+
+    function debouncedBuscar() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(buscar, 600);
+    }
+
+    function limpiarCampo(id) {
+      document.getElementById(id).value = '';
+      buscar();
+    }
+
+    async function buscar() {
+      if (controller) controller.abort();
+      controller = new AbortController();
+      const signal = controller.signal;
+
+      const codigo = document.getElementById("codigo").value.trim();
+      const nombre = document.getElementById("nombre").value.trim();
+
+      const params = new URLSearchParams();
+      if (codigo) params.append("barcode", codigo);
+      if (nombre) params.append("name", nombre);
+
+      const key = params.toString();
+      const url = `https://edab-3-12-108-153.ngrok-free.app/productos/buscar?${key}`; // Reemplaza por tu URL real
+
+      if (cache.has(key)) {
+        mostrarResultados(cache.get(key));
+        return;
+      }
+
+      try {
+        const res = await fetch(url, { signal });
+        const data = await res.json();
+        cache.set(key, data);
+        mostrarResultados(data);
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          console.error("Error en la búsqueda:", err);
+        }
+      }
+    }
+
+    function mostrarResultados(data) {
+      const tbody = document.querySelector('#resultados tbody');
+      const destacado = document.getElementById('producto-destacado');
+
+      tbody.innerHTML = '';
+      if (data.length === 1) {
+        destacado.style.display = "block";
+        destacado.innerHTML = `✅ ${data[0].nombre} - ${data[0].codigo} - $${data[0].precio}`;
+      } else {
+        destacado.style.display = "none";
+        destacado.innerHTML = '';
+      }
+
+      data.forEach(prod => {
+        tbody.innerHTML += `<tr>
+          <td>${prod.barcode}</td>
+          <td>${prod.name}</td>
+          <td>${prod.price}</td>
+        </tr>`;
+      });
+    }
+
+    function iniciarScanner() {
+      if (scannerActivo) return;
+
+      scannerActivo = true;
+      document.getElementById("reader").style.display = "block";
+
+      Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: document.querySelector('#reader'),
+          constraints: {
+            width: 240,
+            height: 180,
+            facingMode: "environment"
+          }
+        },
+        decoder: {
+          readers: ["ean_reader", "code_128_reader"]
+        }
+      }, function(err) {
+        if (err) {
+          console.error("Error al iniciar Quagga:", err);
+          return;
+        }
+        Quagga.start();
+      });
+
+      Quagga.onDetected(result => {
+        const ahora = Date.now();
+        if (ahora - ultimaLectura < 2000) return;
+
+        const code = result.codeResult.code;
+        document.getElementById("codigo").value = code;
+        buscar();
+        ultimaLectura = ahora;
+      });
+    }
+
+    function detenerScanner() {
+      if (scannerActivo) {
+        Quagga.stop();
+        document.getElementById("reader").style.display = "none";
+        scannerActivo = false;
+      }
+    }
+
+    window.onload = () => {
+      buscar(); // Mostrar productos al cargar
+    };
+  </script>
+</body>
+</html>
