@@ -68,7 +68,8 @@
   <h1>📦 Buscador de Productos</h1>
 
   <div class="input-wrapper">
-    <input type="text" id="codigo" placeholder="Código de barras" onfocus="iniciarScanner()" onblur="detenerScanner()">
+    <input type="text" id="codigo" placeholder="Código de barras"
+           onfocus="iniciarScanner()" onblur="detenerScanner()">
     <span class="clear-btn" onclick="limpiarCampo('codigo')">×</span>
   </div>
 
@@ -89,7 +90,9 @@
         <th>Precio</th>
       </tr>
     </thead>
-    <tbody></tbody>
+    <tbody>
+      <tr><td colspan="3">🔍 Cargando productos...</td></tr>
+    </tbody>
   </table>
 
   <script>
@@ -101,7 +104,7 @@
 
     function debouncedBuscar() {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(buscar, 600);
+      debounceTimer = setTimeout(buscar, 300);
     }
 
     function limpiarCampo(id) {
@@ -122,8 +125,10 @@
       if (nombre) params.append("nombre", nombre);
 
       const key = params.toString();
-      // const url = `http://3.12.108.153/AutoServicioLite/productos/buscar?${key}`;  // Reemplaza por tu URL real
-      const url = `/AutoServicioLite/productos/buscar?${key}`;  // Reemplaza por tu URL real
+      const url = `/AutoServicioLite/productos/buscar?${key}`; // Puedes cambiar por tu dominio/IP
+
+      const tbody = document.querySelector('#resultados tbody');
+      tbody.innerHTML = '<tr><td colspan="3">🔄 Buscando...</td></tr>';
 
       if (cache.has(key)) {
         mostrarResultados(cache.get(key));
@@ -138,6 +143,7 @@
       } catch (err) {
         if (err.name !== "AbortError") {
           console.error("Error en la búsqueda:", err);
+          tbody.innerHTML = '<tr><td colspan="3">⚠️ Error de conexión</td></tr>';
         }
       }
     }
@@ -146,27 +152,31 @@
       const tbody = document.querySelector('#resultados tbody');
       const destacado = document.getElementById('producto-destacado');
 
-      tbody.innerHTML = '';
+      if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="3">❌ No se encontraron productos</td></tr>';
+        destacado.style.display = "none";
+        return;
+      }
+
       if (data.length === 1) {
         destacado.style.display = "block";
         destacado.innerHTML = `✅ ${data[0].name} - ${data[0].barcode} - $${data[0].price}`;
       } else {
         destacado.style.display = "none";
-        destacado.innerHTML = '';
       }
 
-      data.forEach(prod => {
-        tbody.innerHTML += `<tr>
+      const rows = data.map(prod => `
+        <tr>
           <td>${prod.barcode}</td>
           <td>${prod.name}</td>
           <td>${prod.price}</td>
-        </tr>`;
-      });
+        </tr>`).join('');
+
+      tbody.innerHTML = rows;
     }
 
     function iniciarScanner() {
       if (scannerActivo) return;
-
       scannerActivo = true;
       document.getElementById("reader").style.display = "block";
 
@@ -204,16 +214,13 @@
     }
 
     function detenerScanner() {
-      if (scannerActivo) {
-        Quagga.stop();
-        document.getElementById("reader").style.display = "none";
-        scannerActivo = false;
-      }
+      if (!scannerActivo) return;
+      Quagga.stop();
+      document.getElementById("reader").style.display = "none";
+      scannerActivo = false;
     }
 
-    window.onload = () => {
-      buscar(); // Mostrar productos al cargar
-    };
+    window.onload = buscar;
   </script>
 </body>
 </html>
