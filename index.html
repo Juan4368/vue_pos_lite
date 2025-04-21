@@ -119,10 +119,10 @@
 
       const params = new URLSearchParams();
       if (codigo) params.append("barcode", codigo);
-      if (nombre) params.append("name", nombre);
+      if (nombre) params.append("nombre", nombre);
 
       const key = params.toString();
-      const url = `https://edab-3-12-108-153.ngrok-free.app/productos/buscar?${key}`; // Reemplaza por tu URL real
+      const url = `http://3.12.108.153/AutoServicioLite/productos/buscar?${key}`;  // Reemplaza por tu URL real
 
       if (cache.has(key)) {
         mostrarResultados(cache.get(key));
@@ -148,7 +148,7 @@
       tbody.innerHTML = '';
       if (data.length === 1) {
         destacado.style.display = "block";
-        destacado.innerHTML = `✅ ${data[0].nombre} - ${data[0].codigo} - $${data[0].precio}`;
+        destacado.innerHTML = `✅ ${data[0].name} - ${data[0].barcode} - $${data[0].price}`;
       } else {
         destacado.style.display = "none";
         destacado.innerHTML = '';
