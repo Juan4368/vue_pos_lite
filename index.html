@@ -32,8 +32,9 @@
       border: 1px solid #ccc;
     }
     #reader {
-      width: 240px;
-      height: 180px;
+      width: 100%;
+      max-width: 360px;
+      height: auto;
       margin: 10px 0;
       border: 1px solid #aaa;
       display: none;
@@ -125,7 +126,7 @@
       if (nombre) params.append("nombre", nombre);
 
       const key = params.toString();
-      const url = `/AutoServicioLite/productos/buscar?${key}`; // Puedes cambiar por tu dominio/IP
+      const url = `/AutoServicioLite/productos/buscar?${key}`;
 
       const tbody = document.querySelector('#resultados tbody');
       tbody.innerHTML = '<tr><td colspan="3">🔄 Buscando...</td></tr>';
@@ -186,9 +187,9 @@
           type: "LiveStream",
           target: document.querySelector('#reader'),
           constraints: {
-            width: 240,
-            height: 180,
-            facingMode: "environment"
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            facingMode: { ideal: "environment" } // ✅ Cámara trasera preferida
           }
         },
         decoder: {
@@ -197,6 +198,7 @@
       }, function(err) {
         if (err) {
           console.error("Error al iniciar Quagga:", err);
+          alert("No se pudo acceder a la cámara. Verifica los permisos y el entorno HTTPS.");
           return;
         }
         Quagga.start();

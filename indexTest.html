@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>🧪 Escáner con Depuración - QuaggaJS</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    #reader {
+      width: 320px;
+      height: 240px;
+      margin: auto;
+      border: 2px solid #333;
+    }
+    #codigo-leido {
+      margin-top: 20px;
+      font-size: 22px;
+      color: green;
+      font-weight: bold;
+    }
+    #log {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #555;
+      max-height: 120px;
+      overflow-y: auto;
+      text-align: left;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📷 Escáner de Código - Modo Depuración</h1>
+  <div id="reader"></div>
+  <div id="codigo-leido">Esperando escaneo...</div>
+  <div id="log"></div>
+
+  <script>
+    let ultimaLectura = 0;
+
+    function log(msg) {
+      console.log(msg);
+      const div = document.getElementById('log');
+      div.innerHTML = `<div>🟢 ${new Date().toLocaleTimeString()} - ${msg}</div>` + div.innerHTML;
+    }
+
+    function iniciarScanner() {
+      log("Iniciando escáner...");
+      Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: document.querySelector('#reader'),
+          constraints: {
+            width: 320,
+            height: 240,
+            facingMode: "environment"
+          }
+        },
+        decoder: {
+          readers: [
+            "ean_reader", "ean_8_reader",
+            "code_128_reader", "upc_reader",
+            "upc_e_reader", "code_39_reader",
+            "code_93_reader", "codabar_reader"
+          ],
+          multiple: false
+        },
+        locator: {
+          patchSize: "medium",
+          halfSample: true,
+          debug: {
+            showCanvas: true,
+            showPatches: true,
+            showFoundPatches: true,
+            showSkeleton: false,
+            showLabels: true,
+            showPatchLabels: true,
+            showRemainingPatchLabels: false,
+            boxFromPatches: {
+              showTransformed: true,
+              showTransformedBox: true,
+              showBB: true
+            }
+          }
+        }
+      }, function(err) {
+        if (err) {
+          console.error("❌ Error al iniciar Quagga:", err);
+          alert("No se pudo iniciar el escáner. Verifica permisos de cámara.");
+          return;
+        }
+        Quagga.start();
+        log("✅ Escáner iniciado correctamente.");
+      });
+
+      Quagga.onProcessed(result => {
+        if (result) {
+          if (result.boxes && result.boxes.length > 0) {
+            log(`📸 Frame procesado con ${result.boxes.length} posibles códigos.`);
+          } else {
+            log("⚠️ Frame procesado sin detecciones claras.");
+          }
+        }
+      });
+
+      Quagga.onDetected(result => {
+        const ahora = Date.now();
+        const code = result.codeResult.code;
+        if (ahora - ultimaLectura < 2000) return; // evita lecturas duplicadas
+
+        log(`🎯 Código detectado: ${code}`);
+        document.getElementById("codigo-leido").innerText = `✅ Código leído: ${code}`;
+        ultimaLectura = ahora;
+      });
+    }
+
+    window.onload = iniciarScanner;
+  </script>
+</body>
+</html>
