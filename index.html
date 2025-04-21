@@ -58,6 +58,19 @@
       display: none;
     }
 
+    #scan-guide {
+      position: absolute;
+      top: 35%;
+      left: 25%;
+      width: 50%;
+      height: 30%;
+      border: 2px solid red;
+      border-radius: 4px;
+      box-shadow: 0 0 10px red;
+      z-index: 10;
+      pointer-events: none;
+    }
+
     #reader canvas,
     #reader video {
       position: absolute;
@@ -96,6 +109,20 @@
     th {
       background-color: #f2f2f2;
     }
+
+    tr.clickable {
+      cursor: pointer;
+    }
+
+    #carrito {
+      margin-top: 30px;
+      display: none;
+    }
+
+    #carrito h2 {
+      margin-bottom: 10px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -112,6 +139,7 @@
   </div>
 
   <div id="reader-wrapper">
+    <div id="scan-guide"></div>
     <div id="reader"></div>
   </div>
 
@@ -130,12 +158,30 @@
     </tbody>
   </table>
 
+  <div id="carrito">
+    <h2>🛒 Carrito de Compras</h2>
+    <table id="carrito-table">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Código</th>
+          <th>Cant</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <audio id="beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+
   <script>
     let debounceTimer;
     let controller = null;
     const cache = new Map();
     let ultimaLectura = 0;
     let scannerActivo = false;
+    const carrito = {};
+    const beep = document.getElementById("beep");
 
     function debouncedBuscar() {
       clearTimeout(debounceTimer);
@@ -201,13 +247,33 @@
       }
 
       const rows = data.map(prod => `
-        <tr>
+        <tr class="clickable" onclick='agregarAlCarrito(${JSON.stringify(prod)})'>
           <td>${prod.barcode}</td>
           <td>${prod.name}</td>
           <td>${prod.price}</td>
         </tr>`).join('');
 
       tbody.innerHTML = rows;
+    }
+
+    function agregarAlCarrito(producto) {
+      const id = producto.barcode;
+      if (!carrito[id]) {
+        carrito[id] = { ...producto, cantidad: 1 };
+      } else {
+        carrito[id].cantidad += 1;
+      }
+
+      const carritoDiv = document.getElementById("carrito");
+      const tbody = document.querySelector("#carrito-table tbody");
+      carritoDiv.style.display = "block";
+      tbody.innerHTML = Object.values(carrito).map(p => `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.barcode}</td>
+          <td>${p.cantidad}</td>
+        </tr>
+      `).join('');
     }
 
     function iniciarScanner() {
@@ -250,6 +316,7 @@
         if (!/^\d{8,14}$/.test(code)) return;
         if (ahora - ultimaLectura < 2000) return;
 
+        beep.play().catch(err => console.warn("Sonido bloqueado:", err));
         document.getElementById("codigo").value = code;
         buscar();
         ultimaLectura = ahora;
