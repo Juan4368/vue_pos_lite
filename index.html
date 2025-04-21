@@ -122,7 +122,8 @@
       if (nombre) params.append("nombre", nombre);
 
       const key = params.toString();
-      const url = `http://3.12.108.153/AutoServicioLite/productos/buscar?${key}`;  // Reemplaza por tu URL real
+      // const url = `http://3.12.108.153/AutoServicioLite/productos/buscar?${key}`;  // Reemplaza por tu URL real
+      const url = `/AutoServicioLite/productos/buscar?${key}`;  // Reemplaza por tu URL real
 
       if (cache.has(key)) {
         mostrarResultados(cache.get(key));
