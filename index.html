@@ -3,283 +3,121 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Buscador de Productos</title>
+  <title>POS Lite</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 10px;
-      background: #f9f9f9;
-    }
-
-    h1 {
-      text-align: center;
-      font-size: 1.5rem;
-    }
-
-    .input-wrapper {
-      position: relative;
-      display: flex;
-      justify-content: center;
-      margin: 10px 0;
-    }
-
-    .clear-btn {
-      position: absolute;
-      right: 20px;
-      top: 50%;
-      transform: translateY(-50%);
-      cursor: pointer;
-      font-weight: bold;
-      color: red;
-      font-size: 1.2rem;
-    }
-
-    input {
-      padding: 10px;
-      width: 90%;
-      max-width: 400px;
-      font-size: 1rem;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-
+    body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #f9f9f9; }
+    button { margin: 5px; padding: 10px 20px; font-size: 1rem; border: none; border-radius: 5px; cursor: pointer; }
+    .btn-primary { background-color: #007bff; color: white; }
+    .btn-secondary { background-color: #6c757d; color: white; }
+    .view { display: none; }
+    .view.active { display: block; }
+    table { width: 100%; margin-top: 10px; border-collapse: collapse; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f2f2f2; }
     #reader-wrapper {
-      width: 100%;
-      max-width: 480px;
-      margin: 10px auto;
-      position: relative;
-      aspect-ratio: 4/3;
-      background: #000;
-      overflow: hidden;
-      border-radius: 8px;
-      border: 2px solid #ccc;
-      display: none;
+      width: 100%; max-width: 480px; margin: 10px auto; position: relative;
+      aspect-ratio: 4/3; background: #000; overflow: hidden; border-radius: 8px; border: 2px solid #ccc;
     }
-
     #scan-guide {
-      position: absolute;
-      top: 35%;
-      left: 25%;
-      width: 50%;
-      height: 30%;
-      border: 2px solid red;
-      border-radius: 4px;
-      box-shadow: 0 0 10px red;
-      z-index: 10;
-      pointer-events: none;
+      position: absolute; top: 35%; left: 25%; width: 50%; height: 30%;
+      border: 2px solid red; border-radius: 4px; box-shadow: 0 0 10px red; z-index: 10; pointer-events: none;
     }
-
-    #reader canvas,
-    #reader video {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: cover;
-    }
-
-    #producto-destacado {
-      margin-top: 20px;
-      padding: 15px;
-      border: 2px solid #4CAF50;
-      border-radius: 10px;
-      background-color: #eaffea;
-      font-size: 1.1rem;
-      font-weight: bold;
-      text-align: center;
-      display: none;
-    }
-
-    table {
-      margin-top: 20px;
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.95rem;
-    }
-
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: left;
-    }
-
-    th {
-      background-color: #f2f2f2;
-    }
-
-    tr.clickable {
-      cursor: pointer;
-    }
-
-    #carrito {
-      margin-top: 30px;
-      display: none;
-    }
-
-    #carrito h2 {
-      margin-bottom: 10px;
-      text-align: center;
+    #reader canvas, #reader video {
+      position: absolute; top: 0; left: 0;
+      width: 100% !important; height: 100% !important; object-fit: cover;
     }
   </style>
 </head>
 <body>
-  <h1>📦 Buscador de Productos</h1>
-
-  <div class="input-wrapper">
-    <input type="text" id="codigo" placeholder="Escanea código" readonly onfocus="iniciarScanner()" onblur="detenerScanner()">
-    <span class="clear-btn" onclick="limpiarCampo('codigo')">×</span>
+  <h1>POS Lite</h1>
+  <div>
+    <button class="btn-primary" onclick="mostrarVista('productos')">🛍️ Productos</button>
+    <button class="btn-secondary" onclick="mostrarVista('carrito')">🛒 Carrito</button>
   </div>
 
-  <div class="input-wrapper">
-    <input type="text" id="nombre" placeholder="Buscar por nombre" oninput="debouncedBuscar()">
-    <span class="clear-btn" onclick="limpiarCampo('nombre')">×</span>
-  </div>
-
-  <div id="reader-wrapper">
-    <div id="scan-guide"></div>
-    <div id="reader"></div>
-  </div>
-
-  <div id="producto-destacado"></div>
-
-  <table id="resultados">
-    <thead>
-      <tr>
-        <th>Código</th>
-        <th>Nombre</th>
-        <th>Precio</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td colspan="3">🔍 Cargando productos...</td></tr>
-    </tbody>
-  </table>
-
-  <div id="carrito">
-    <h2>🛒 Carrito de Compras</h2>
-    <table id="carrito-table">
-      <thead>
-        <tr>
-          <th>Producto</th>
-          <th>Código</th>
-          <th>Cant</th>
-        </tr>
-      </thead>
+  <div id="vista-productos" class="view active">
+    <input type="text" id="nombre" placeholder="Buscar producto" oninput="buscarProductos()" style="width: 100%; padding: 10px; margin-top: 10px;">
+    <div id="reader-wrapper">
+      <div id="scan-guide"></div>
+      <div id="reader"></div>
+    </div>
+    <table id="tabla-productos">
+      <thead><tr><th>Nombre</th><th>Precio</th><th>Agregar</th></tr></thead>
       <tbody></tbody>
     </table>
+  </div>
+
+  <div id="vista-carrito" class="view">
+    <h2>🛒 Carrito</h2>
+    <table id="tabla-carrito">
+      <thead><tr><th>Producto</th><th>Precio</th><th>Cantidad</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <h3>Total: $<span id="total-carrito">0</span></h3>
   </div>
 
   <audio id="beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
   <script>
-    let debounceTimer;
-    let controller = null;
-    const cache = new Map();
-    let ultimaLectura = 0;
-    let scannerActivo = false;
     const carrito = {};
     const beep = document.getElementById("beep");
 
-    function debouncedBuscar() {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(buscar, 300);
+    function mostrarVista(vista) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(`vista-${vista}`).classList.add('active');
+      if (vista === 'carrito') renderCarrito();
     }
 
-    function limpiarCampo(id) {
-      document.getElementById(id).value = '';
-      buscar();
-    }
-
-    async function buscar() {
-      if (controller) controller.abort();
-      controller = new AbortController();
-      const signal = controller.signal;
-
-      const codigo = document.getElementById("codigo").value.trim();
-      const nombre = document.getElementById("nombre").value.trim();
-
-      const params = new URLSearchParams();
-      if (codigo) params.append("barcode", codigo);
-      if (nombre) params.append("nombre", nombre);
-
-      const key = params.toString();
-      const url = `/AutoServicioLite/productos/buscar?${key}`;
-
-      const tbody = document.querySelector('#resultados tbody');
-      tbody.innerHTML = '<tr><td colspan="3">🔄 Buscando...</td></tr>';
-
-      if (cache.has(key)) {
-        mostrarResultados(cache.get(key));
-        return;
-      }
+    async function buscarProductos() {
+      const filtro = document.getElementById("nombre").value.trim();
+      const tbody = document.querySelector("#tabla-productos tbody");
+      tbody.innerHTML = "<tr><td colspan='3'>🔄 Buscando...</td></tr>";
 
       try {
-        const res = await fetch(url, { signal });
+        const res = await fetch(`/AutoServicioLite/productos/buscar?nombre=${encodeURIComponent(filtro)}`);
         const data = await res.json();
-        cache.set(key, data);
-        mostrarResultados(data);
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error("Error en la búsqueda:", err);
-          tbody.innerHTML = '<tr><td colspan="3">⚠️ Error de conexión</td></tr>';
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td colspan="3">❌ No se encontraron productos</td></tr>';
+          return;
         }
+        tbody.innerHTML = data.map(p => `
+          <tr>
+            <td>${p.name}</td>
+            <td>$${p.price}</td>
+            <td><button onclick='agregarAlCarrito(${JSON.stringify(p)})'>+</button></td>
+          </tr>`).join('');
+      } catch (err) {
+        console.error("Error en la búsqueda:", err);
+        tbody.innerHTML = '<tr><td colspan="3">⚠️ Error al buscar productos</td></tr>';
       }
-    }
-
-    function mostrarResultados(data) {
-      const tbody = document.querySelector('#resultados tbody');
-      const destacado = document.getElementById('producto-destacado');
-
-      if (!data.length) {
-        tbody.innerHTML = '<tr><td colspan="3">❌ No se encontraron productos</td></tr>';
-        destacado.style.display = "none";
-        return;
-      }
-
-      if (data.length === 1) {
-        destacado.style.display = "block";
-        destacado.innerHTML = `✅ ${data[0].name} - ${data[0].barcode} - $${data[0].price}`;
-      } else {
-        destacado.style.display = "none";
-      }
-
-      const rows = data.map(prod => `
-        <tr class="clickable" onclick='agregarAlCarrito(${JSON.stringify(prod)})'>
-          <td>${prod.barcode}</td>
-          <td>${prod.name}</td>
-          <td>${prod.price}</td>
-        </tr>`).join('');
-
-      tbody.innerHTML = rows;
     }
 
     function agregarAlCarrito(producto) {
-      const id = producto.barcode;
-      if (!carrito[id]) {
-        carrito[id] = { ...producto, cantidad: 1 };
+      if (!carrito[producto.name]) {
+        carrito[producto.name] = { ...producto, cantidad: 1 };
       } else {
-        carrito[id].cantidad += 1;
+        carrito[producto.name].cantidad++;
       }
+      alert(`✅ ${producto.name} agregado al carrito.`);
+    }
 
-      const carritoDiv = document.getElementById("carrito");
-      const tbody = document.querySelector("#carrito-table tbody");
-      carritoDiv.style.display = "block";
-      tbody.innerHTML = Object.values(carrito).map(p => `
-        <tr>
-          <td>${p.name}</td>
-          <td>${p.barcode}</td>
-          <td>${p.cantidad}</td>
-        </tr>
-      `).join('');
+    function renderCarrito() {
+      const tbody = document.querySelector("#tabla-carrito tbody");
+      tbody.innerHTML = "";
+      let total = 0;
+      Object.values(carrito).forEach(item => {
+        total += item.price * item.cantidad;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${item.name}</td><td>$${item.price}</td><td>${item.cantidad}</td>`;
+        tbody.appendChild(tr);
+      });
+      document.getElementById("total-carrito").innerText = total;
     }
 
     function iniciarScanner() {
-      if (scannerActivo) return;
-      scannerActivo = true;
-      document.getElementById("reader-wrapper").style.display = "block";
+      if (window.scannerActivo) return;
+      window.scannerActivo = true;
 
       Quagga.init({
         inputStream: {
@@ -310,27 +148,22 @@
       });
 
       Quagga.onDetected(result => {
-        const ahora = Date.now();
         const code = result.codeResult.code;
-
         if (!/^\d{8,14}$/.test(code)) return;
-        if (ahora - ultimaLectura < 2000) return;
-
         beep.play().catch(err => console.warn("Sonido bloqueado:", err));
-        document.getElementById("codigo").value = code;
-        buscar();
-        ultimaLectura = ahora;
+        fetch(`/AutoServicioLite/productos/buscar?barcode=${encodeURIComponent(code)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.length) agregarAlCarrito(data[0]);
+          })
+          .catch(err => console.error("Error buscando por código escaneado:", err));
       });
     }
 
-    function detenerScanner() {
-      if (!scannerActivo) return;
-      Quagga.stop();
-      document.getElementById("reader-wrapper").style.display = "none";
-      scannerActivo = false;
+    window.onload = () => {
+      buscarProductos();
+      iniciarScanner();
     }
-
-    window.onload = buscar;
   </script>
 </body>
 </html>
