@@ -8,58 +8,78 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
+      padding: 10px;
+      margin: 0;
       background: #f9f9f9;
     }
+
+    h1 {
+      font-size: 1.5rem;
+      text-align: center;
+    }
+
     .input-wrapper {
       position: relative;
-      display: inline-block;
+      display: flex;
+      justify-content: center;
+      margin: 10px 0;
     }
+
     .clear-btn {
       position: absolute;
-      right: 10px;
+      right: 20px;
       top: 50%;
       transform: translateY(-50%);
       cursor: pointer;
       font-weight: bold;
       color: red;
+      font-size: 1.2rem;
     }
+
     input {
-      margin: 5px;
       padding: 10px;
-      width: 300px;
-      border-radius: 5px;
+      width: 90%;
+      max-width: 400px;
+      font-size: 1rem;
+      border-radius: 8px;
       border: 1px solid #ccc;
     }
+
     #reader {
       width: 100%;
-      max-width: 360px;
+      max-width: 480px;
       height: auto;
-      margin: 10px 0;
-      border: 1px solid #aaa;
+      aspect-ratio: 4/3;
+      margin: 10px auto;
+      border: 2px solid #aaa;
       display: none;
     }
+
     #producto-destacado {
       margin-top: 20px;
       padding: 15px;
       border: 2px solid #4CAF50;
       border-radius: 10px;
       background-color: #eaffea;
-      font-size: 18px;
+      font-size: 1.1rem;
       font-weight: bold;
       text-align: center;
       display: none;
     }
+
     table {
-      margin-top: 30px;
-      border-collapse: collapse;
+      margin-top: 20px;
       width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
     }
+
     th, td {
       border: 1px solid #ddd;
       padding: 10px;
       text-align: left;
     }
+
     th {
       background-color: #f2f2f2;
     }
@@ -69,8 +89,7 @@
   <h1>📦 Buscador de Productos</h1>
 
   <div class="input-wrapper">
-    <input type="text" id="codigo" placeholder="Código de barras"
-           onfocus="iniciarScanner()" onblur="detenerScanner()">
+    <input type="text" id="codigo" placeholder="Escanea código" readonly onfocus="iniciarScanner()" onblur="detenerScanner()">
     <span class="clear-btn" onclick="limpiarCampo('codigo')">×</span>
   </div>
 
@@ -189,26 +208,32 @@
           constraints: {
             width: { ideal: 640 },
             height: { ideal: 480 },
-            facingMode: { ideal: "environment" } // ✅ Cámara trasera preferida
+            facingMode: { ideal: "environment" }
           }
+        },
+        locator: {
+          patchSize: "large",
+          halfSample: true
         },
         decoder: {
           readers: ["ean_reader", "code_128_reader"]
-        }
+        },
+        locate: true
       }, function(err) {
         if (err) {
           console.error("Error al iniciar Quagga:", err);
-          alert("No se pudo acceder a la cámara. Verifica los permisos y el entorno HTTPS.");
+          alert("No se pudo acceder a la cámara.");
           return;
         }
         Quagga.start();
       });
 
       Quagga.onDetected(result => {
-        const ahora = Date.now();
-        if (ahora - ultimaLectura < 2000) return;
-
         const code = result.codeResult.code;
+        const ahora = Date.now();
+
+        if (ahora - ultimaLectura < 2000 || !/^\d{8,14}$/.test(code)) return;
+
         document.getElementById("codigo").value = code;
         buscar();
         ultimaLectura = ahora;
