@@ -80,7 +80,7 @@
   <div id="vista-carrito" class="view">
     <h2>🛒 Carrito</h2>
     <table id="tabla-carrito">
-      <thead><tr><th>Producto</th><th>Precio</th><th>Cantidad</th></tr></thead>
+      <thead><tr><th>Producto</th><th>Precio</th><th>Cantidad</th><th>Total</th><th>Eliminar</th></tr></thead>
       <tbody></tbody>
     </table>
     <h3>Total: $<span id="total-carrito">0</span></h3>
@@ -111,10 +111,10 @@
           return;
         }
         tbody.innerHTML = data.map(p => `
-          <tr>
+          <tr onclick='agregarAlCarrito(${JSON.stringify(p)})'>
             <td>${p.name}</td>
-            <td>$${p.price}</td>
-            <td><button onclick='agregarAlCarrito(${JSON.stringify(p)})'>+</button></td>
+            <td>$${p.price.toFixed(2)}</td>
+            <td colspan="2"></td>
           </tr>`).join('');
       } catch (err) {
         console.error("Error en la búsqueda:", err);
@@ -138,10 +138,15 @@
       Object.values(carrito).forEach(item => {
         total += item.price * item.cantidad;
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${item.name}</td><td>$${item.price}</td><td>${item.cantidad}</td>`;
+        tr.innerHTML = `
+          <td>${item.name}</td>
+          <td>$${item.price.toFixed(2)}</td>
+          <td>${item.cantidad}</td>
+          <td>$${(item.price * item.cantidad).toFixed(2)}</td>
+          <td><button onclick="eliminarDelCarrito('${item.name}')">🗑️</button></td>`;
         tbody.appendChild(tr);
       });
-      document.getElementById("total-carrito").innerText = total;
+      document.getElementById("total-carrito").innerText = total.toFixed(2);
     }
 
     function iniciarScanner() {
@@ -189,10 +194,18 @@
       });
     }
 
-    function mostrarToast() {
+    function mostrarToast(mensaje = "Producto agregado al carrito") {
   const toast = document.getElementById("toast");
+  toast.textContent = mensaje;
   toast.className = "show";
   setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+}, 3000);
+}
+
+function eliminarDelCarrito(nombre) {
+  delete carrito[nombre];
+  renderCarrito();
+  mostrarToast("Producto eliminado del carrito");
 }
 
 window.onload = () => {
